@@ -1,11 +1,9 @@
-"use client";
+"use client"
+import Searchbar from "./Searchbar"
+import Notification from "./Notification"
+import ProfileDropdown from "./ProfileDropdown"
 
-import React from 'react';
-import Searchbar from './Searchbar';
-import Notification from './Notification';
-import ProfileDropdown from './ProfileDropdown';
-
-function Navbar() {
+export default function Navbar() {
   return (
     <div className="fixed top-0 left-0 right-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
       <div className="h-14 px-4">
@@ -19,7 +17,7 @@ function Navbar() {
           </div>
 
           {/* Search Bar - Center */}
-          <div className="flex-1 max-w-xl mx-4">
+          <div className="flex-1 max-w-xl mx-4 hidden md:block">
             <Searchbar />
           </div>
 
@@ -31,7 +29,6 @@ function Navbar() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
-export default Navbar;

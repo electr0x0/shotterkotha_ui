@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   IconThumbUp,
   IconThumbDown,
@@ -8,31 +9,35 @@ import {
   IconShare3,
   IconPlayerPlay,
   IconMapPin,
-  IconClock
+  IconClock,
+  IconAlertTriangle,
+  IconBookmark,
 } from "@tabler/icons-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import Image from "next/image";
 
 function PostCard({
-  user = {
-    name: "John Doe",
-    avatar: "/avatars/default.png",
-  },
-  location = "Dhaka, Bangladesh",
-  timeAgo = "2 hours ago",
-  media = {
-    type: "image", // or "video"
-    url: "https://images.unsplash.com/photo-1476842634003-7dcca8f832de",
-    thumbnail: "https://images.unsplash.com/photo-1476842634003-7dcca8f832de",
-  },
-  stats = {
-    upvotes: 1234,
-    downvotes: 56,
-    comments: 89,
-  },
+  user,
+  location,
+  timeAgo,
+  title,
+  description,
+  media,
+  stats,
+  severity,
+  category,
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [votes, setVotes] = useState(stats.upvotes - stats.downvotes);
   const [userVote, setUserVote] = useState(null);
+  const [isSaved, setIsSaved] = useState(false);
 
   const handleVote = (type) => {
     if (userVote === type) {
@@ -48,110 +53,180 @@ function PostCard({
     }
   };
 
+  const severityColor = {
+    low: "bg-green-500/10 text-green-500",
+    medium: "bg-yellow-500/10 text-yellow-500",
+    high: "bg-red-500/10 text-red-500",
+  };
+
   return (
-    <div className="max-w-xl w-full mx-auto">
-      <div className="bg-card rounded-lg shadow-lg border border-border overflow-hidden">
-        {/* User Info Header */}
-        <div className="p-4 flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-primary">
-              <Image
-                src={user.avatar}
-                alt={user.name}
-                fill
-                className="object-cover"
-              />
-            </div>
-            <div>
-              <h3 className="font-medium text-sm">{user.name}</h3>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <IconMapPin className="w-3 h-3" />
-                  <span>{location}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <IconClock className="w-3 h-3" />
-                  <span>{timeAgo}</span>
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full"
+    >
+      <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden transition-all duration-200 hover:shadow-xl">
+        {/* Header */}
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <motion.div 
+                whileHover={{ scale: 1.1 }}
+                className="relative w-10 h-10"
+              >
+                <Image
+                  src={user.avatar}
+                  alt={user.name}
+                  fill
+                  className="rounded-full object-cover border-2 border-primary"
+                />
+                {user.badge && (
+                  <div className="absolute -bottom-1 -right-1">
+                    <Badge variant="secondary" className="h-5 text-xs">
+                      {user.badge}
+                    </Badge>
+                  </div>
+                )}
+              </motion.div>
+              <div>
+                <h3 className="font-semibold">{user.name}</h3>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <IconMapPin className="w-3 h-3" />
+                    <span>{location}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <IconClock className="w-3 h-3" />
+                    <span>{timeAgo}</span>
+                  </div>
                 </div>
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className={cn("font-medium", severityColor[severity])}>
+                {severity.charAt(0).toUpperCase() + severity.slice(1)}
+              </Badge>
+              <Badge variant="secondary">{category}</Badge>
+            </div>
+          </div>
+          
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold mb-2">{title}</h2>
+            <p className="text-muted-foreground text-sm">{description}</p>
           </div>
         </div>
 
-        {/* Media Content */}
+        {/* Media */}
         <div
-          className="relative aspect-video w-full"
+          className="relative aspect-video w-full cursor-pointer overflow-hidden"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
-          {media.type === "video" ? (
-            <>
-              <Image
-                src={media.thumbnail}
-                alt="Video thumbnail"
-                fill
-                className="object-cover"
-              />
+          <Image
+            src={media.url}
+            alt="Post media"
+            fill
+            className="object-cover transition-transform duration-300 hover:scale-105"
+          />
+          {media.type === "video" && (
+            <AnimatePresence>
               {isHovered && (
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-16 h-16 rounded-full bg-primary/80 flex items-center justify-center animate-in zoom-in-50 duration-300">
-                      <IconPlayerPlay className="w-8 h-8 text-primary-foreground ml-1" />
-                    </div>
-                  </div>
-                </div>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-black/50 flex items-center justify-center"
+                >
+                  <motion.div
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.8 }}
+                    className="rounded-full bg-white/20 p-4 backdrop-blur-sm"
+                  >
+                    <IconPlayerPlay className="w-8 h-8 text-white" />
+                  </motion.div>
+                </motion.div>
               )}
-            </>
-          ) : (
-            <Image
-              src={media.url}
-              alt="Post image"
-              fill
-              className="object-cover"
-            />
+            </AnimatePresence>
           )}
         </div>
 
-        {/* Interaction Bar */}
+        {/* Actions */}
         <div className="p-4 flex items-center justify-between border-t border-border">
-          <div className="flex items-center gap-6">
-            {/* Votes */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleVote("up")}
-                className={cn(
-                  "p-1 rounded hover:bg-accent transition-colors",
-                  userVote === "up" && "text-primary"
-                )}
-              >
-                <IconThumbUp className="w-5 h-5" />
-              </button>
-              <span className="text-sm font-medium">{votes}</span>
-              <button
-                onClick={() => handleVote("down")}
-                className={cn(
-                  "p-1 rounded hover:bg-accent transition-colors",
-                  userVote === "down" && "text-destructive"
-                )}
-              >
-                <IconThumbDown className="w-5 h-5" />
-              </button>
-            </div>
+          <div className="flex items-center gap-4">
+            <TooltipProvider>
+              <div className="flex items-center gap-1.5">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleVote("up")}
+                      className={cn(userVote === "up" && "text-primary")}
+                    >
+                      <IconThumbUp className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Upvote</TooltipContent>
+                </Tooltip>
+                <span className="text-sm font-medium min-w-[2ch] text-center">{votes}</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleVote("down")}
+                      className={cn(userVote === "down" && "text-destructive")}
+                    >
+                      <IconThumbDown className="w-4 h-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Downvote</TooltipContent>
+                </Tooltip>
+              </div>
 
-            {/* Comments */}
-            <button className="flex items-center gap-2 text-sm hover:text-primary transition-colors">
-              <IconMessageCircle className="w-5 h-5" />
-              <span>{stats.comments}</span>
-            </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="flex items-center gap-2">
+                    <IconMessageCircle className="w-4 h-4" />
+                    <span className="text-sm">{stats.comments}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Comments</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
 
-          {/* Share */}
-          <button className="p-1 rounded hover:bg-accent transition-colors">
-            <IconShare3 className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsSaved(!isSaved)}
+                    className={cn(isSaved && "text-primary")}
+                  >
+                    <IconBookmark className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{isSaved ? "Saved" : "Save"}</TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <IconShare3 className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Share</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
