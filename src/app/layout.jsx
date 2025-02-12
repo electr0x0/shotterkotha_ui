@@ -2,6 +2,7 @@ import { Providers } from "./providers";
 import Navbar from "@/components/Dashboard/Navbar";
 import Sidebar from "@/components/Dashboard/Sidebar";
 import "./globals.css";
+import { Toaster } from "@/components/ui/toaster"
 
 export default function RootLayout({ children }) {
   return (
@@ -28,6 +29,7 @@ export default function RootLayout({ children }) {
             </div>
           </div>
         </Providers>
+        <Toaster />
       </body>
     </html>
   );
