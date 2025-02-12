@@ -5,52 +5,8 @@ import { Card } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { IconInfoCircle } from "@tabler/icons-react"
-
-// Dummy data for Bangladesh districts with crime data
-const dummyData = [
-  // Dhaka Division
-  { lat: 23.8103, lng: 90.4125, weight: 100, name: "Dhaka", crimes: 850 },
-  { lat: 24.0958, lng: 90.4125, weight: 75, name: "Gazipur", crimes: 650 },
-  { lat: 23.6238, lng: 90.5000, weight: 85, name: "Narayanganj", crimes: 720 },
-  
-  // Chittagong Division
-  { lat: 22.3569, lng: 91.7832, weight: 90, name: "Chittagong", crimes: 780 },
-  { lat: 22.7010, lng: 90.3535, weight: 60, name: "Barisal", crimes: 450 },
-  { lat: 22.8456, lng: 89.5403, weight: 70, name: "Khulna", crimes: 580 },
-  
-  // Sylhet Division
-  { lat: 24.8949, lng: 91.8687, weight: 65, name: "Sylhet", crimes: 520 },
-  { lat: 24.7471, lng: 90.4203, weight: 55, name: "Mymensingh", crimes: 420 },
-  
-  // Rajshahi Division
-  { lat: 24.3745, lng: 88.6042, weight: 80, name: "Rajshahi", crimes: 680 },
-  { lat: 25.7439, lng: 89.2752, weight: 45, name: "Rangpur", crimes: 380 },
-  
-  // Additional hotspots
-  { lat: 23.7104, lng: 90.4074, weight: 95, name: "Dhaka Central", crimes: 820 },
-  { lat: 23.7925, lng: 90.4078, weight: 88, name: "Uttara", crimes: 750 },
-  { lat: 23.7511, lng: 90.3934, weight: 92, name: "Mirpur", crimes: 790 },
-  { lat: 23.7461, lng: 90.3742, weight: 87, name: "Mohammadpur", crimes: 740 },
-  { lat: 23.7511, lng: 90.4143, weight: 86, name: "Gulshan", crimes: 730 },
-]
-
-// Generate more data points around major cities
-const generateDataPoints = () => {
-  const points = [...dummyData]
-  dummyData.forEach(city => {
-    for (let i = 0; i < 10; i++) {
-      points.push({
-        lat: city.lat + (Math.random() - 0.5) * 0.5,
-        lng: city.lng + (Math.random() - 0.5) * 0.5,
-        weight: city.weight * (0.3 + Math.random() * 0.7),
-        name: `${city.name} Area ${i + 1}`,
-        crimes: Math.floor(city.crimes * (0.3 + Math.random() * 0.7))
-      })
-    }
-  })
-  return points
-}
+import { IconInfoCircle, IconLoader2 } from "@tabler/icons-react"
+import axiosInstance from "@/utils/axiosInstance"
 
 const timeRanges = [
   { value: "24h", label: "Last 24 Hours" },
@@ -86,17 +42,40 @@ export default function HeatmapComponent() {
   const [crimeType, setCrimeType] = useState("all")
   const [intensity, setIntensity] = useState(0.7)
   const [data, setData] = useState([])
+  const [metadata, setMetadata] = useState(null)
   const [mounted, setMounted] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
+    const fetchHeatmapData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const response = await axiosInstance.get('/reports/posts/heatmap/', {
+          params: {
+            time_range: timeRange,
+            crime_type: crimeType
+          }
+        })
+        setData(response.data.points)
+        setMetadata(response.data.metadata)
+      } catch (error) {
+        console.error('Error fetching heatmap data:', error)
+        setError('Failed to load heatmap data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
     setMounted(true)
-    setData(generateDataPoints())
-  }, [])
+    fetchHeatmapData()
+  }, [timeRange, crimeType])
 
   if (!mounted) {
     return (
       <div className="flex items-center justify-center h-[600px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <IconLoader2 className="w-8 h-8 animate-spin" />
       </div>
     )
   }
@@ -158,10 +137,26 @@ export default function HeatmapComponent() {
             />
           </div>
         </div>
+
+        {metadata && (
+          <div className="text-sm text-muted-foreground">
+            Total crimes: {metadata.total_crimes} | Period: {new Date(metadata.date_from).toLocaleDateString()} - {new Date(metadata.date_to).toLocaleDateString()}
+          </div>
+        )}
       </Card>
 
       <Card className="p-4 h-[600px] relative z-0">
-        <Map data={data} intensity={intensity} />
+        {loading ? (
+          <div className="flex items-center justify-center h-full">
+            <IconLoader2 className="w-8 h-8 animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center h-full text-destructive">
+            {error}
+          </div>
+        ) : (
+          <Map data={data} intensity={intensity} />
+        )}
       </Card>
 
       <Card className="p-4 relative z-10">

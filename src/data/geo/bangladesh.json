@@ -1,0 +1,94 @@
+{
+  "divisions": {
+    "Dhaka": [
+      "Dhaka",
+      "Gazipur",
+      "Narayanganj",
+      "Tangail",
+      "Narsingdi",
+      "Kishoreganj",
+      "Manikganj",
+      "Munshiganj",
+      "Rajbari",
+      "Madaripur",
+      "Gopalganj",
+      "Faridpur",
+      "Shariatpur"
+    ],
+    "Chittagong": [
+      "Chittagong",
+      "Cox's Bazar",
+      "Rangamati",
+      "Bandarban",
+      "Khagrachari",
+      "Feni",
+      "Lakshmipur",
+      "Comilla",
+      "Noakhali",
+      "Chandpur",
+      "Brahmanbaria"
+    ],
+    "Rajshahi": [
+      "Rajshahi",
+      "Natore",
+      "Naogaon",
+      "Chapainawabganj",
+      "Pabna",
+      "Bogra",
+      "Sirajganj",
+      "Joypurhat"
+    ],
+    "Khulna": [
+      "Khulna",
+      "Bagerhat",
+      "Satkhira",
+      "Jessore",
+      "Magura",
+      "Jhenaidah",
+      "Narail",
+      "Kushtia",
+      "Chuadanga",
+      "Meherpur"
+    ],
+    "Barisal": [
+      "Barisal",
+      "Bhola",
+      "Patuakhali",
+      "Pirojpur",
+      "Jhalokati",
+      "Barguna"
+    ],
+    "Sylhet": [
+      "Sylhet",
+      "Moulvibazar",
+      "Habiganj",
+      "Sunamganj"
+    ],
+    "Rangpur": [
+      "Rangpur",
+      "Gaibandha",
+      "Nilphamari",
+      "Kurigram",
+      "Lalmonirhat",
+      "Dinajpur",
+      "Thakurgaon",
+      "Panchagarh"
+    ],
+    "Mymensingh": [
+      "Mymensingh",
+      "Jamalpur",
+      "Sherpur",
+      "Netrokona"
+    ]
+  },
+  "divisionCoordinates": {
+    "Dhaka": [23.8103, 90.4125],
+    "Chittagong": [22.3569, 91.7832],
+    "Rajshahi": [24.3745, 88.6042],
+    "Khulna": [22.8456, 89.5403],
+    "Barisal": [22.7010, 90.3535],
+    "Sylhet": [24.8949, 91.8687],
+    "Rangpur": [25.7439, 89.2752],
+    "Mymensingh": [24.7471, 90.4203]
+  }
+} 

@@ -1,28 +1,57 @@
 "use client"
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MessageSquare, X, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { IconLoader2 } from "@tabler/icons-react";
+import axiosInstance from "@/utils/axiosInstance";
+import { toast } from "sonner";
 
 export default function AIChatMessage() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "Hello! How can I help you today?",
-      sender: "ai",
-      timestamp: new Date().toISOString(),
-    }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchChatHistory();
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const fetchChatHistory = async () => {
+    try {
+      const response = await axiosInstance.get('/chat/history/');
+      const formattedMessages = response.data.map(msg => ({
+        id: msg.id,
+        text: msg.response,
+        thinking: msg.thinking_process,
+        sender: "ai",
+        timestamp: msg.created_at,
+        prompt: msg.prompt
+      }));
+      setMessages(formattedMessages);
+    } catch (error) {
+      console.error('Error fetching chat history:', error);
+      toast.error("Failed to load chat history");
+    }
+  };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!inputMessage.trim()) return;
 
-    // Add user message
     const userMessage = {
-      id: messages.length + 1,
+      id: Date.now(),
       text: inputMessage,
       sender: "user",
       timestamp: new Date().toISOString(),
@@ -30,18 +59,30 @@ export default function AIChatMessage() {
 
     setMessages(prev => [...prev, userMessage]);
     setInputMessage("");
+    setIsLoading(true);
 
-    // Here you would add your AI integration logic
-    // For now, we'll just simulate a response
-    setTimeout(() => {
+    try {
+      const response = await axiosInstance.post('/chat/', {
+        prompt: inputMessage
+      });
+
       const aiResponse = {
-        id: messages.length + 2,
-        text: "This is a sample AI response. Replace this with actual AI integration.",
+        id: response.data.chat_id,
+        text: response.data.response,
+        thinking: response.data.thinking,
         sender: "ai",
-        timestamp: new Date().toISOString(),
+        timestamp: response.data.created_at
       };
+
       setMessages(prev => [...prev, aiResponse]);
-    }, 1000);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error("Failed to send message");
+      // Remove the user message if AI response fails
+      setMessages(prev => prev.filter(msg => msg.id !== userMessage.id));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -82,10 +123,16 @@ export default function AIChatMessage() {
                       : "bg-muted"
                   }`}
                 >
+                  {message.sender === "ai" && message.thinking && (
+                    <div className="text-xs text-muted-foreground mb-2 italic">
+                      {message.thinking}
+                    </div>
+                  )}
                   {message.text}
                 </div>
               </div>
             ))}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input */}
@@ -96,9 +143,14 @@ export default function AIChatMessage() {
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="Type your message..."
                 className="flex-1"
+                disabled={isLoading}
               />
-              <Button type="submit" size="icon" className="mt-1">
-                <Send className="h-4 w-4" />
+              <Button type="submit" size="icon" disabled={isLoading}>
+                {isLoading ? (
+                  <IconLoader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </form>

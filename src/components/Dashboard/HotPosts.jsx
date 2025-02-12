@@ -6,62 +6,71 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
-
-const hotPosts = [
-  {
-    id: 1,
-    category: "High Alert",
-    title: "Suspicious Activity in Gulshan-2",
-    description: "Multiple reports of suspicious individuals near residential areas",
-    image: "https://images.unsplash.com/photo-1517021897933-0e0319cfbc28",
-    severity: "high",
-    location: "Dhaka",
-    reportCount: 15,
-  },
-  {
-    id: 2,
-    category: "Traffic Alert",
-    title: "Major Road Blockage on Mirpur Road",
-    description: "Heavy traffic due to ongoing construction work",
-    image: "https://images.unsplash.com/photo-1566288623394-377af472d81b",
-    severity: "medium",
-    location: "Dhaka",
-    reportCount: 8,
-  },
-  // Add more items...
-];
+import axiosInstance from "@/utils/axiosInstance";
+import { useRouter } from "next/navigation";
 
 function HotPosts() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const timeoutRef = useRef(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    fetchHotPosts();
+  }, []);
+
+  const fetchHotPosts = async () => {
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get('/reports/posts/');
+      // Get only posts with images and take the 3 most recent
+      const postsWithImages = response.data
+        .filter(post => post.media?.some(media => media.media_type === 'image'))
+        .slice(0, 3);
+      setPosts(postsWithImages);
+    } catch (err) {
+      console.error('Error fetching hot posts:', err);
+      setError('Failed to load recent posts');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const nextSlide = () => {
-    setCurrentIndex((prev) => (prev + 1) % hotPosts.length);
+    setCurrentIndex((prev) => (prev + 1) % posts.length);
   };
 
   const prevSlide = () => {
-    setCurrentIndex((prev) => (prev - 1 + hotPosts.length) % hotPosts.length);
+    setCurrentIndex((prev) => (prev - 1 + posts.length) % posts.length);
   };
 
   useEffect(() => {
-    if (!isHovered) {
+    if (!isHovered && posts.length > 0) {
       timeoutRef.current = setTimeout(nextSlide, 5000);
     }
     return () => clearTimeout(timeoutRef.current);
-  }, [currentIndex, isHovered]);
+  }, [currentIndex, isHovered, posts.length]);
 
-  const severityColor = {
-    low: "bg-green-500/10 text-green-500",
-    medium: "bg-yellow-500/10 text-yellow-500",
-    high: "bg-red-500/10 text-red-500",
-  };
+  if (loading) {
+    return (
+      <div className="relative h-[400px] rounded-xl overflow-hidden bg-background/95 animate-pulse">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
+      </div>
+    );
+  }
+
+  if (error || posts.length === 0) {
+    return null; // Don't show anything if there's an error or no posts
+  }
 
   return (
     <div className="relative overflow-hidden bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Trending Alerts</h2>
+          <h2 className="text-2xl font-bold">Recent Reports</h2>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -83,9 +92,10 @@ function HotPosts() {
         </div>
 
         <div 
-          className="relative h-[400px] rounded-xl overflow-hidden"
+          className="relative h-[400px] rounded-xl overflow-hidden cursor-pointer"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
+          onClick={() => router.push(`/post/${posts[currentIndex].id}`)}
         >
           <AnimatePresence mode="wait">
             <motion.div
@@ -97,8 +107,8 @@ function HotPosts() {
               className="relative h-full"
             >
               <Image
-                src={hotPosts[currentIndex].image}
-                alt={hotPosts[currentIndex].title}
+                src={posts[currentIndex].media.find(m => m.media_type === 'image').file_url}
+                alt={posts[currentIndex].title}
                 fill
                 className="object-cover"
               />
@@ -113,22 +123,27 @@ function HotPosts() {
                 <div className="flex items-center gap-3 mb-4">
                   <Badge 
                     variant="outline" 
-                    className={cn("font-medium", severityColor[hotPosts[currentIndex].severity])}
+                    className={cn(
+                      "font-medium",
+                      posts[currentIndex].severity === 'high' && "bg-red-500/10 text-red-500",
+                      posts[currentIndex].severity === 'medium' && "bg-yellow-500/10 text-yellow-500",
+                      posts[currentIndex].severity === 'low' && "bg-green-500/10 text-green-500"
+                    )}
                   >
-                    {hotPosts[currentIndex].severity.toUpperCase()}
+                    {posts[currentIndex].severity.toUpperCase()}
                   </Badge>
-                  <Badge variant="secondary">{hotPosts[currentIndex].category}</Badge>
+                  <Badge variant="secondary">{posts[currentIndex].category}</Badge>
                   <Badge variant="outline" className="gap-1">
                     <IconAlertTriangle className="w-3 h-3" />
-                    {hotPosts[currentIndex].reportCount} Reports
+                    {posts[currentIndex].comments_count} Reports
                   </Badge>
                 </div>
                 
                 <h3 className="text-2xl font-bold text-white mb-2">
-                  {hotPosts[currentIndex].title}
+                  {posts[currentIndex].title}
                 </h3>
                 <p className="text-gray-200 max-w-2xl">
-                  {hotPosts[currentIndex].description}
+                  {posts[currentIndex].description}
                 </p>
               </motion.div>
             </motion.div>
@@ -136,10 +151,13 @@ function HotPosts() {
 
           {/* Slide indicators */}
           <div className="absolute bottom-4 right-4 flex gap-2">
-            {hotPosts.map((_, index) => (
+            {posts.map((_, index) => (
               <button
                 key={index}
-                onClick={() => setCurrentIndex(index)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCurrentIndex(index);
+                }}
                 className={cn(
                   "w-2 h-2 rounded-full transition-all duration-300",
                   index === currentIndex 

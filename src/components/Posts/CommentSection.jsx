@@ -4,9 +4,15 @@ import { motion, AnimatePresence } from "framer-motion"
 import axios from "axios"
 import Comment from "./Comment"
 import { Button } from "@/components/ui/button"
-import { IconMessageCircle } from "@tabler/icons-react"
+import { IconMessageCircle, IconUser, IconSend } from "@tabler/icons-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import WriteComment from "./WriteComment"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { toast } from "sonner"
+import axiosInstance from "@/utils/axiosInstance"
+import { Textarea } from "@/components/ui/textarea"
 
 // Recursive component for nested comments
 const CommentThread = ({ comment, level = 0, maxLevel = 6 }) => {
@@ -85,13 +91,25 @@ const CommentThread = ({ comment, level = 0, maxLevel = 6 }) => {
   )
 }
 
-export default function CommentSection({ postId }) {
-  const [comments, setComments] = useState([])
+const commentSchema = z.object({
+  content: z.string().min(1, "Comment cannot be empty").max(500, "Comment is too long")
+})
+
+export default function CommentSection({ postId, comments: initialComments }) {
+  const [comments, setComments] = useState(initialComments || [])
   const [loading, setLoading] = useState(false)
   const [hasMore, setHasMore] = useState(true)
   const [page, setPage] = useState(1)
   const [totalComments, setTotalComments] = useState(0)
   const [isWriting, setIsWriting] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const form = useForm({
+    resolver: zodResolver(commentSchema),
+    defaultValues: {
+      content: ""
+    }
+  })
 
   // Fetch initial comments
   const fetchComments = async () => {
@@ -120,103 +138,73 @@ export default function CommentSection({ postId }) {
     fetchComments()
   }
 
-  const handleAddComment = async (commentData) => {
+  const onSubmit = async (data) => {
     try {
-      // TODO: Implement API call with media upload
-      const formData = new FormData()
-      formData.append('content', commentData.content)
-      formData.append('media', commentData.media.file)
-      
-      // Mock response for now
-      const newComment = {
-        id: Date.now().toString(),
-        user: {
-          name: "You",
-          image: null,
-        },
-        content: commentData.content,
-        media: {
-          type: commentData.media.type,
-          url: commentData.media.url,
-        },
-        timeAgo: "Just now",
-        stats: {
-          upvotes: 0,
-          downvotes: 0,
-          comments: 0,
-        },
-        isEditable: true,
-      }
+      setIsSubmitting(true)
+      const response = await axiosInstance.post(`/reports/posts/${postId}/comment/`, {
+        content: data.content
+      })
 
-      setComments([newComment, ...comments])
-      setTotalComments(totalComments + 1)
-      setIsWriting(false)
+      if (response.status === 201) {
+        setComments(prev => [...prev, response.data])
+        form.reset()
+        toast.success("Comment posted successfully")
+      }
     } catch (error) {
-      console.error("Failed to add comment:", error)
+      toast.error("Failed to post comment. Please try again.")
+      console.error("Comment error:", error)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="bg-background rounded-lg p-4">
-      {/* Comments Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold flex items-center gap-2">
-          <IconMessageCircle className="h-5 w-5" />
-          Comments ({totalComments})
-        </h2>
-        <Button
-          variant="outline"
-          onClick={() => setIsWriting(!isWriting)}
-        >
-          Write a comment
-        </Button>
-      </div>
-
-      {/* Write Comment Section */}
-      <AnimatePresence>
-        {isWriting && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mb-6"
-          >
-            <WriteComment
-              onSubmit={handleAddComment}
-              onCancel={() => setIsWriting(false)}
-            />
-          </motion.div>
+    <div className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <Textarea
+          placeholder="Write a comment..."
+          {...form.register("content")}
+          className="min-h-[100px] resize-none"
+        />
+        {form.formState.errors.content && (
+          <p className="text-sm text-destructive">
+            {form.formState.errors.content.message}
+          </p>
         )}
-      </AnimatePresence>
+        <div className="flex justify-end">
+          <Button 
+            type="submit" 
+            disabled={isSubmitting}
+            className="flex items-center gap-2"
+          >
+            <IconSend className="w-4 h-4" />
+            {isSubmitting ? "Posting..." : "Post Comment"}
+          </Button>
+        </div>
+      </form>
 
-      {/* Comments List */}
-      <ScrollArea className="h-[600px] pr-4">
+      <div className="space-y-4 mt-6">
         {comments.map((comment) => (
-          <div key={comment.id} className="mb-4">
-            <CommentThread comment={comment} />
+          <div key={comment.id} className="flex gap-3">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+                <IconUser className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">
+                  {comment.user.first_name} {comment.user.last_name}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(comment.created_at).toLocaleDateString()}
+                </span>
+              </div>
+              <p className="text-sm mt-1">{comment.content}</p>
+            </div>
           </div>
         ))}
-
-        {/* Load More Button */}
-        {hasMore && (
-          <div className="flex justify-center mt-4">
-            <Button
-              variant="outline"
-              onClick={loadMoreComments}
-              disabled={loading}
-            >
-              {loading ? "Loading..." : "Load more comments"}
-            </Button>
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && comments.length === 0 && (
-          <div className="text-center text-muted-foreground py-8">
-            No comments yet. Be the first to comment!
-          </div>
-        )}
-      </ScrollArea>
+      </div>
     </div>
   )
 }

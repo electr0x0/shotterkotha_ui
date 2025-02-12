@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/sheet"
 import { useEffect, useState } from "react"
 
-export default function Navbar() {
+export default function Navbar({ onSearch }) {
   const router = useRouter()
   const { setTheme, theme } = useTheme()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -57,11 +57,6 @@ export default function Navbar() {
                       <span className="font-semibold">username</span>
                       <span className="text-sm text-muted-foreground">@username</span>
                     </div>
-                  </div>
-
-                  {/* Search Bar */}
-                  <div className="px-2">
-                    <Searchbar />
                   </div>
 
                   {/* Menu Items */}
@@ -124,13 +119,13 @@ export default function Navbar() {
             <span className="font-semibold text-lg whitespace-nowrap">ShotterKotha</span>
           </div>
 
-          {/* Search Bar - Center - Hidden on mobile, visible on md and up */}
-          <div className="hidden md:block flex-1 max-w-xl">
-            <Searchbar />
+          {/* Search Bar - Center */}
+          <div className="flex-1 max-w-xl">
+            <Searchbar onSearch={onSearch} />
           </div>
 
-          {/* Right Section: Notifications & Profile - Hidden on mobile */}
-          <div className="hidden md:flex items-center gap-2">
+          {/* Right Section: Notifications & Profile */}
+          <div className="flex items-center gap-2">
             {isAuthenticated ? (
               <>
                 <Notification />

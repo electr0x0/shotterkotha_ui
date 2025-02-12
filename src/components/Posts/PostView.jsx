@@ -5,23 +5,20 @@ import { cn } from "@/lib/utils"
 import {
   IconThumbUp,
   IconThumbDown,
-  IconShare,
+  IconShare3,
   IconDots,
   IconUser,
   IconFlag,
   IconMessageCircle,
   IconBookmark,
   IconArrowLeft,
-  IconPhoto,
-  IconVideo,
-  IconCheck,
+  IconMapPin,
+  IconClock,
 } from "@tabler/icons-react"
-import { Lens } from "@/components/ui/lens"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
@@ -31,33 +28,45 @@ import { Separator } from "@/components/ui/separator"
 import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog"
 import CommentSection from "./CommentSection"
 import AIImageDescription from "./AIImageDescription"
+import axiosInstance from "@/utils/axiosInstance"
+import { toast } from "sonner"
 
 export default function PostView({ post }) {
-  const [votes, setVotes] = useState(post.stats.upvotes - post.stats.downvotes)
-  const [userVote, setUserVote] = useState(null)
+  const [votes, setVotes] = useState(post.upvotes_count - post.downvotes_count)
+  const [userVote, setUserVote] = useState(post.has_user_voted)
   const [isSaved, setIsSaved] = useState(false)
   const [isMediaOpen, setIsMediaOpen] = useState(false)
-  const [isHovering, setIsHovering] = useState(false)
 
-  const handleVote = (type) => {
-    if (userVote === type) {
-      setUserVote(null)
-      setVotes(post.stats.upvotes - post.stats.downvotes)
-    } else {
-      setUserVote(type)
-      setVotes(
-        type === "up"
-          ? post.stats.upvotes - post.stats.downvotes + 1
-          : post.stats.upvotes - post.stats.downvotes - 1
-      )
+  const handleVote = async (type) => {
+    try {
+      const response = await axiosInstance.post(`/reports/posts/${post.id}/vote/`, {
+        vote_type: type
+      });
+
+      if (response.status === 200) {
+        if (userVote === type) {
+          setUserVote(null);
+          setVotes(votes => type === "up" ? votes - 1 : votes + 1);
+        } else {
+          if (userVote) {
+            setVotes(votes => type === "up" ? votes + 2 : votes - 2);
+          } else {
+            setVotes(votes => type === "up" ? votes + 1 : votes - 1);
+          }
+          setUserVote(type);
+        }
+      }
+    } catch (error) {
+      toast.error("Failed to register vote. Please try again.");
+      console.error("Vote error:", error);
     }
-  }
+  };
 
   const handleShare = async () => {
     try {
       await navigator.share({
         title: post.title,
-        text: post.content,
+        text: post.description,
         url: window.location.href,
       })
     } catch (error) {
@@ -66,22 +75,22 @@ export default function PostView({ post }) {
   }
 
   const renderMedia = () => {
-    if (!post.media?.url) return null;
+    if (!post.media?.[0]?.file) return null;
 
     return (
       <div className="mt-4">
         <Dialog open={isMediaOpen} onOpenChange={setIsMediaOpen}>
           <DialogTrigger asChild>
             <div className="cursor-pointer relative rounded-lg overflow-hidden">
-              {post.media.type === 'photo' ? (
+              {post.media[0].media_type === 'image' ? (
                 <img
-                  src={post.media.url}
-                  alt="Post media"
+                  src={post.media[0].file}
+                  alt={post.title}
                   className="w-full rounded-lg"
                 />
               ) : (
                 <video
-                  src={post.media.url}
+                  src={post.media[0].file}
                   className="w-full rounded-lg"
                   controls
                 />
@@ -89,34 +98,30 @@ export default function PostView({ post }) {
             </div>
           </DialogTrigger>
           <DialogContent className="max-w-4xl">
-            <DialogTitle className="sr-only">
-              {post.media.type === 'photo' ? 'Post Image' : 'Post Video'}
-            </DialogTitle>
-            {post.media.type === 'photo' ? (
+            <DialogTitle className="sr-only">Media View</DialogTitle>
+            {post.media[0].media_type === 'image' ? (
               <img
-                src={post.media.url}
-                alt="Post media"
+                src={post.media[0].file}
+                alt={post.title}
                 className="w-full rounded-lg"
-                onError={(e) => {
-                  e.currentTarget.src = null;
-                  console.error("Failed to load image");
-                }}
               />
-            ) : post.media.type === 'video' ? (
+            ) : (
               <video
-                src={post.media.url}
+                src={post.media[0].file}
                 controls
                 className="w-full rounded-lg"
-                onError={(e) => {
-                  e.currentTarget.src = null;
-                  console.error("Failed to load video");
-                }}
               />
-            ) : null}
+            )}
           </DialogContent>
         </Dialog>
       </div>
     );
+  };
+
+  const severityColor = {
+    low: "bg-green-500/10 text-green-500",
+    medium: "bg-yellow-500/10 text-yellow-500",
+    high: "bg-red-500/10 text-red-500",
   };
 
   return (
@@ -152,55 +157,54 @@ export default function PostView({ post }) {
       <ScrollArea className="flex-1">
         <div className="container max-w-4xl mx-auto px-4 py-6">
           <div className="space-y-4">
-            {/* User Info with Verified Badge */}
+            {/* User Info */}
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
                 <IconUser className="h-5 w-5" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{post.user.name}</span>
-                  {post.user.isVerified && (
-                    <div className="rounded-full bg-primary/10 p-0.5">
-                      <IconCheck className="h-4 w-4 text-primary" />
-                    </div>
+                  <span className="font-medium">{post.user.first_name} {post.user.last_name}</span>
+                  {post.user.verified_status === "verified" && (
+                    <Badge variant="secondary" className="text-primary">✓ Verified</Badge>
                   )}
-                  <span className="text-sm text-muted-foreground">•</span>
-                  <span className="text-sm text-muted-foreground">{post.timeAgo}</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span>{post.location}</span>
-                  {post.division && (
-                    <>
-                      <span className="text-muted-foreground">•</span>
-                      <span>{post.division}</span>
-                    </>
-                  )}
+                <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <IconMapPin className="w-3 h-3" />
+                    <span>{post.fullAddress}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <IconClock className="w-3 h-3" />
+                    <span>{post.time_ago}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Post Title & Content */}
+            {/* Post Details */}
             <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Badge variant="outline" className={cn("font-medium", severityColor[post.severity])}>
+                  {post.severity.charAt(0).toUpperCase() + post.severity.slice(1)}
+                </Badge>
+                <Badge variant="secondary">{post.category}</Badge>
+              </div>
               <h1 className="text-2xl font-bold mb-4">{post.title}</h1>
-              <p className="text-foreground/90 whitespace-pre-wrap">{post.content}</p>
+              <p className="text-foreground/90 whitespace-pre-wrap">{post.description}</p>
             </div>
 
-            {/* Post Media */}
+            {/* Media */}
             {renderMedia()}
 
-            {/* Post Stats & Actions */}
+            {/* Actions */}
             <div className="flex items-center justify-between pt-4">
               <div className="flex items-center gap-4">
-                {/* Vote Buttons */}
                 <div className="flex items-center gap-1">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={cn(
-                      "h-9 w-9",
-                      userVote === "up" && "text-primary"
-                    )}
+                    className={cn("h-9 w-9", userVote === "up" && "text-primary")}
                     onClick={() => handleVote("up")}
                   >
                     <IconThumbUp className="h-4 w-4" />
@@ -211,28 +215,24 @@ export default function PostView({ post }) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={cn(
-                      "h-9 w-9",
-                      userVote === "down" && "text-destructive"
-                    )}
+                    className={cn("h-9 w-9", userVote === "down" && "text-destructive")}
                     onClick={() => handleVote("down")}
                   >
                     <IconThumbDown className="h-4 w-4" />
                   </Button>
                 </div>
 
-                {/* Comments Count */}
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <IconMessageCircle className="h-4 w-4" />
-                  <span className="text-sm">{post.stats.comments}</span>
+                  <span className="text-sm">{post.comments_count}</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
-                {post.media?.type === 'photo' && post.media.aiDescription && (
+                {post.media?.[0]?.media_type === 'image' && post.media[0].ai_description && (
                   <AIImageDescription 
-                    imageUrl={post.media.url}
-                    description={post.media.aiDescription}
+                    imageUrl={post.media[0].file}
+                    description={post.media[0].ai_description}
                   />
                 )}
                 <Button
@@ -249,7 +249,7 @@ export default function PostView({ post }) {
                   className="h-9 w-9"
                   onClick={handleShare}
                 >
-                  <IconShare className="h-4 w-4" />
+                  <IconShare3 className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -257,7 +257,7 @@ export default function PostView({ post }) {
             <Separator className="my-6" />
 
             {/* Comments Section */}
-            <CommentSection postId={post.id} />
+            <CommentSection postId={post.id} comments={post.comments} />
           </div>
         </div>
       </ScrollArea>

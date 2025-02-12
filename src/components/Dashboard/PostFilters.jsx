@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,15 +8,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { 
   IconFilter, 
-  IconArrowsSort, 
   IconMapPin, 
   IconChevronRight,
   IconX
@@ -33,25 +30,16 @@ const divisions = {
   "Mymensingh": ["Mymensingh", "Jamalpur", "Netrokona", "Sherpur"]
 };
 
-const sortOptions = [
-  { value: "hot", label: "Hot", icon: "🔥" },
-  { value: "top", label: "Top", icon: "⭐" },
-  { value: "new", label: "New", icon: "🆕" },
-  { value: "controversial", label: "Controversial", icon: "💭" }
-];
-
 function PostFilters({ onFilterChange }) {
   const [selectedDivision, setSelectedDivision] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
-  const [sortBy, setSortBy] = useState("hot");
 
   const handleDivisionChange = (division) => {
     setSelectedDivision(division);
     setSelectedDistrict(""); // Reset district when division changes
     onFilterChange({
       division,
-      district: "",
-      sortBy
+      district: ""
     });
   };
 
@@ -59,28 +47,16 @@ function PostFilters({ onFilterChange }) {
     setSelectedDistrict(district);
     onFilterChange({
       division: selectedDivision,
-      district,
-      sortBy
-    });
-  };
-
-  const handleSortChange = (sort) => {
-    setSortBy(sort);
-    onFilterChange({
-      division: selectedDivision,
-      district: selectedDistrict,
-      sortBy: sort
+      district
     });
   };
 
   const clearFilters = () => {
     setSelectedDivision("");
     setSelectedDistrict("");
-    setSortBy("hot");
     onFilterChange({
       division: "",
-      district: "",
-      sortBy: "hot"
+      district: ""
     });
   };
 
@@ -91,7 +67,7 @@ function PostFilters({ onFilterChange }) {
           <IconFilter className="w-5 h-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold">Filters</h2>
         </div>
-        {(selectedDivision || selectedDistrict || sortBy !== "hot") && (
+        {(selectedDivision || selectedDistrict) && (
           <Button
             variant="ghost"
             size="sm"
@@ -139,7 +115,7 @@ function PostFilters({ onFilterChange }) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* District Dropdown */}
+        {/* District Dropdown - Only show if division is selected */}
         {selectedDivision && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -176,65 +152,6 @@ function PostFilters({ onFilterChange }) {
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-
-        {/* Sort Dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <IconArrowsSort className="h-4 w-4" />
-              {sortOptions.find(opt => opt.value === sortBy)?.label || "Sort"}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Sort Posts</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuRadioGroup value={sortBy} onValueChange={handleSortChange}>
-              {sortOptions.map((option) => (
-                <DropdownMenuRadioItem 
-                  key={option.value} 
-                  value={option.value}
-                  className="flex items-center justify-between"
-                >
-                  <span className="flex items-center gap-2">
-                    <span>{option.icon}</span>
-                    {option.label}
-                  </span>
-                  {sortBy === option.value && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="w-2 h-2 rounded-full bg-primary"
-                    />
-                  )}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Active Filters */}
-        <div className="flex-1 flex items-center gap-2">
-          {selectedDivision && (
-            <Badge variant="secondary" className="gap-1">
-              {selectedDivision}
-              <button
-                onClick={() => handleDivisionChange("")}
-                className="ml-1 hover:text-destructive">
-                <IconX className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-          {selectedDistrict && (
-            <Badge variant="secondary" className="gap-1">
-              {selectedDistrict}
-              <button
-                onClick={() => handleDistrictChange("")}
-                className="ml-1 hover:text-destructive">
-                <IconX className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-        </div>
       </div>
     </div>
   );

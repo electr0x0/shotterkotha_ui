@@ -21,8 +21,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Modal, ModalBody, ModalContent, ModalTrigger } from "@/components/ui/modal"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 const mainLinks = [
   {
@@ -68,6 +67,7 @@ const communityLinks = [
 export default function Sidebar({ className }) {
   const pathname = usePathname()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
 
   return (
     <div className={cn(
@@ -84,25 +84,29 @@ export default function Sidebar({ className }) {
                 transition={{ duration: 0.2 }}
                 className={cn(isCollapsed ? "hidden" : "block")}
               >
-                <Modal>
-                  <ModalTrigger asChild>
-                    <Button className="w-full justify-start gap-2" size="lg">
-                      <IconPlus className="w-4 h-4" />
-                      <span>Report New Incident</span>
-                    </Button>
-                  </ModalTrigger>
-                  <ModalBody>
-                    <ModalContent>
-                      <div className="mb-6">
-                        <h2 className="text-2xl font-bold">Report New Incident</h2>
-                        <p className="text-muted-foreground">
-                          Please provide detailed information about the incident
-                        </p>
-                      </div>
-                      <ReportIncidentForm onClose={() => setOpen(false)} />
-                    </ModalContent>
-                  </ModalBody>
-                </Modal>
+                <Button 
+                  className="w-full justify-start gap-2" 
+                  size="lg"
+                  onClick={() => setIsDialogOpen(true)}
+                >
+                  <IconPlus className="w-4 h-4" />
+                  <span>Report New Incident</span>
+                </Button>
+
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogContent className="max-w-[800px] w-[90vw] max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="text-2xl font-bold">Report New Incident</DialogTitle>
+                      <p className="text-muted-foreground">
+                        Please provide detailed information about the incident
+                      </p>
+                    </DialogHeader>
+                    <div className="mt-4">
+                      <ReportIncidentForm onClose={() => setIsDialogOpen(false)} />
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 <Separator className="my-4" />
               </motion.div>
               <div className="space-y-1">
