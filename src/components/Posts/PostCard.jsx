@@ -212,18 +212,13 @@ export default function PostCard({ post }) {
                     <TooltipContent>Downvote</TooltipContent>
                   </Tooltip>
                 </div>
-
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="flex items-center gap-2">
-                      <IconMessageCircle className="w-4 h-4" />
-                      <span className="text-sm">{post.stats.comments}</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Comments</TooltipContent>
-                </Tooltip>
               </TooltipProvider>
-            </div>
+              {/* Comments Count */}
+              <div className="flex items-center gap-1 p-2 rounded-md text-foreground hover:bg-gray-800/15">
+                    <IconMessageCircle className="h-4 w-4" />
+                    <span className="text-sm">{post.stats.comments}</span>
+                  </div>
+              </div>
 
             <div className="flex items-center gap-2">
               {post.media?.type === 'photo' && post.media.aiDescription && (

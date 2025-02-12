@@ -118,7 +118,7 @@ function HotPosts() {
                     {hotPosts[currentIndex].severity.toUpperCase()}
                   </Badge>
                   <Badge variant="secondary">{hotPosts[currentIndex].category}</Badge>
-                  <Badge variant="outline" className="gap-1">
+                  <Badge variant="outline" className="gap-1 text-white">
                     <IconAlertTriangle className="w-3 h-3" />
                     {hotPosts[currentIndex].reportCount} Reports
                   </Badge>
