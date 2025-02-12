@@ -9,8 +9,13 @@ import L from 'leaflet';
 import Image from 'next/image';
 import axios from 'axios';
 import { motion, AnimatePresence } from "framer-motion";
+import axiosInstance from "@/utils/axiosInstance";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SignupFormDemo() {
+  const { toast } = useToast();
+  const router = useRouter();
   const [location, setLocation] = useState({ lat: 23.8103, lng: 90.4125 });
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
@@ -21,6 +26,31 @@ export default function SignupFormDemo() {
   const [previewUrl, setPreviewUrl] = useState(null);
   const fileInputRef = useRef(null);
   const [hovering, setHovering] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    username: '',
+    password: '',
+    password2: '',
+    first_name: '',
+    last_name: '',
+    phone_number: '',
+    address: '',
+    district: '',
+    division: '',
+    fullAddress: '',
+    longitude: '',
+    latitude: ''
+  });
+
+  // Helper function to show toasts
+  const showToast = (type, title, description) => {
+    toast({
+      variant: type, // 'default' | 'destructive'
+      title: title,
+      description: description,
+      duration: 5000,
+    });
+  };
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -31,23 +61,85 @@ export default function SignupFormDemo() {
     }
   };
 
-  const handlePhoneSubmit = (e) => {
+  const handlePhoneSubmit = async (e) => {
     e.preventDefault();
-    setIsOtpSent(true);
-    console.log("OTP sent to", phone);
+    try {
+      const response = await axiosInstance.post('auth/register/', {
+        ...formData,
+        phone_number: `+880${formData.phone_number}`
+      });
+
+      const { tokens, message } = response.data;
+      localStorage.setItem('accessToken', tokens.access);
+      localStorage.setItem('refreshToken', tokens.refresh);
+      axiosInstance.defaults.headers.common['Authorization'] = `Bearer ${tokens.access}`;
+
+      await axiosInstance.post('auth/send-otp/', {
+        otp_type: 'whatsapp'
+      });
+
+      setIsOtpSent(true);
+      showToast('default', 'Registration Successful', message || 'Please check your WhatsApp for OTP');
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 
+                          Object.values(error.response?.data || {})[0]?.[0] ||
+                          'Registration failed. Please try again.';
+      showToast('destructive', 'Registration Failed', errorMessage);
+    }
   };
 
-  const handleOtpVerify = (e) => {
+  const handleOtpVerify = async (e) => {
     e.preventDefault();
-    if (otp.length === 6) {
+    try {
+      const response = await axiosInstance.post('auth/verify-otp/', {
+        otp_code: otp,
+        otp_type: 'whatsapp'
+      });
       setIsOtpVerified(true);
+      showToast('default', 'OTP Verified', 'OTP verification successful');
       moveToNextStep();
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 
+                          Object.values(error.response?.data || {})[0]?.[0] ||
+                          'OTP verification failed. Please try again.';
+      showToast('destructive', 'Verification Failed', errorMessage);
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     moveToNextStep();
+  };
+
+  // Modify handleFinalSubmit to include redirection
+  const handleFinalSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Update profile
+      await axiosInstance.patch('auth/profile/', {
+        first_name: formData.first_name,
+        last_name: formData.last_name
+      });
+
+      // Update location
+      await axiosInstance.patch('auth/update-location/', {
+        district: formData.district,
+        division: formData.division,
+        fullAddress: formData.fullAddress,
+        longitude: formData.longitude,
+        latitude: formData.latitude
+      });
+
+      showToast('default', 'Registration Complete', 'Your profile has been successfully set up');
+      
+      // Redirect to feed page after successful registration
+      router.push('/feed');
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 
+                          Object.values(error.response?.data || {})[0]?.[0] ||
+                          'Failed to update profile. Please try again.';
+      showToast('destructive', 'Update Failed', errorMessage);
+    }
   };
 
   // Define render functions first
@@ -58,12 +150,58 @@ export default function SignupFormDemo() {
     >
       <div className="space-y-4">
         <div className="text-center mb-6">
-          <h3 className="text-lg font-semibold">Phone Verification</h3>
-          <p className="text-sm text-neutral-600 dark:text-neutral-300">Verify your phone number</p>
+          <h3 className="text-lg font-semibold">Create Account</h3>
+          <p className="text-sm text-neutral-600 dark:text-neutral-300">Enter your details to register</p>
         </div>
 
         {!isOtpSent ? (
           <form onSubmit={handlePhoneSubmit}>
+            <LabelInputContainer className="mb-4">
+              <Label htmlFor="email">Email</Label>
+              <Input 
+                id="email" 
+                placeholder="your.email@example.com" 
+                type="email" 
+                required 
+                value={formData.email}
+                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+              />
+            </LabelInputContainer>
+
+            <LabelInputContainer className="mb-4">
+              <Label htmlFor="username">Username</Label>
+              <Input 
+                id="username" 
+                placeholder="username123" 
+                type="text" 
+                required 
+                value={formData.username}
+                onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+              />
+            </LabelInputContainer>
+
+            <LabelInputContainer className="mb-4">
+              <Label htmlFor="password">Password</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                value={formData.password}
+                onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
+              />
+            </LabelInputContainer>
+
+            <LabelInputContainer className="mb-4">
+              <Label htmlFor="password2">Confirm Password</Label>
+              <Input 
+                id="password2" 
+                type="password" 
+                required 
+                value={formData.password2}
+                onChange={(e) => setFormData(prev => ({ ...prev, password2: e.target.value }))}
+              />
+            </LabelInputContainer>
+
             <LabelInputContainer className="mb-4">
               <Label htmlFor="phone">Phone Number</Label>
               <div className="flex">
@@ -77,27 +215,28 @@ export default function SignupFormDemo() {
                   type="tel" 
                   pattern="[0-9]{10}" 
                   required 
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  value={formData.phone_number}
+                  onChange={(e) => setFormData(prev => ({ ...prev, phone_number: e.target.value }))}
                 />
               </div>
             </LabelInputContainer>
+
             <button
               className="bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium"
               type="submit">
-              Send OTP
+              Register & Send OTP
+              <BottomGradient />
             </button>
           </form>
         ) : !isOtpVerified ? (
           <form onSubmit={handleOtpVerify}>
             <LabelInputContainer className="mb-4">
-              <Label htmlFor="otp">Enter OTP</Label>
+              <Label htmlFor="otp">Enter WhatsApp OTP</Label>
               <Input 
                 id="otp" 
-                placeholder="Enter 6-digit OTP" 
+                placeholder="Enter OTP sent to your WhatsApp" 
                 type="text" 
-                pattern="[0-9]{6}" 
-                maxLength={6}
+                pattern="[0-9]*" 
                 required 
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
@@ -107,6 +246,7 @@ export default function SignupFormDemo() {
               className="bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium"
               type="submit">
               Verify OTP
+              <BottomGradient />
             </button>
           </form>
         ) : null}
@@ -159,18 +299,27 @@ export default function SignupFormDemo() {
           <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mb-4">
             <LabelInputContainer>
               <Label htmlFor="firstname">First Name</Label>
-              <Input id="firstname" placeholder="John" type="text" required />
+              <Input 
+                id="firstname" 
+                placeholder="John" 
+                type="text" 
+                required 
+                value={formData.first_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, first_name: e.target.value }))}
+              />
             </LabelInputContainer>
             <LabelInputContainer>
               <Label htmlFor="lastname">Last Name</Label>
-              <Input id="lastname" placeholder="Doe" type="text" required />
+              <Input 
+                id="lastname" 
+                placeholder="Doe" 
+                type="text" 
+                required 
+                value={formData.last_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, last_name: e.target.value }))}
+              />
             </LabelInputContainer>
           </div>
-
-          <LabelInputContainer className="mb-4">
-            <Label htmlFor="email">Email Address</Label>
-            <Input id="email" placeholder="john.doe@example.com" type="email" required />
-          </LabelInputContainer>
 
           <button
             className="bg-gradient-to-br relative group/btn from-black dark:from-zinc-900 dark:to-zinc-900 to-neutral-600 block dark:bg-zinc-800 w-full text-white rounded-md h-10 font-medium"
@@ -194,15 +343,29 @@ export default function SignupFormDemo() {
           <p className="text-sm text-neutral-600 dark:text-neutral-300">Set your location</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleFinalSubmit} className="space-y-4">
           <LabelInputContainer>
             <Label htmlFor="division">Division</Label>
-            <Input id="division" placeholder="Dhaka" type="text" required />
+            <Input 
+              id="division" 
+              placeholder="Dhaka" 
+              type="text" 
+              required 
+              value={formData.division}
+              onChange={(e) => setFormData(prev => ({ ...prev, division: e.target.value }))}
+            />
           </LabelInputContainer>
 
           <LabelInputContainer>
-            <Label htmlFor="city">City</Label>
-            <Input id="city" placeholder="Dhaka" type="text" required />
+            <Label htmlFor="district">District</Label>
+            <Input 
+              id="district" 
+              placeholder="Dhaka" 
+              type="text" 
+              required 
+              value={formData.district}
+              onChange={(e) => setFormData(prev => ({ ...prev, district: e.target.value }))}
+            />
           </LabelInputContainer>
 
           <LabelInputContainer>
@@ -222,8 +385,8 @@ export default function SignupFormDemo() {
             </div>
             <Input 
               id="address" 
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
+              value={formData.fullAddress}
+              onChange={(e) => setFormData(prev => ({ ...prev, fullAddress: e.target.value }))}
               placeholder="Click on the map to select location" 
               type="text" 
               required 
@@ -299,18 +462,23 @@ export default function SignupFormDemo() {
     const [position, setPosition] = useState({ lat: 23.8103, lng: 90.4125 });
     const map = useMap();
 
-    useEffect(() => {
-      map.setView([position.lat, position.lng], 13);
-    }, [position, map]);
-
     useMapEvents({
       async click(e) {
         const { lat, lng } = e.latlng;
         setPosition({ lat, lng });
         
-        // Get address from coordinates
+        setFormData(prev => ({
+          ...prev,
+          latitude: lat,
+          longitude: lng
+        }));
+        
         const data = await reverseGeocode(lat, lng);
         if (data) {
+          setFormData(prev => ({
+            ...prev,
+            fullAddress: data.display_name
+          }));
           setAddress(data.display_name);
         }
       },
