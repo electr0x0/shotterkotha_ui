@@ -199,7 +199,7 @@ export default function PostView({ post }) {
                     size="icon"
                     className={cn(
                       "h-9 w-9",
-                      userVote === "up" && "text-primary"
+                      userVote === "up" && "text-green-500 hover:text-green-500"
                     )}
                     onClick={() => handleVote("up")}
                   >
@@ -213,18 +213,12 @@ export default function PostView({ post }) {
                     size="icon"
                     className={cn(
                       "h-9 w-9",
-                      userVote === "down" && "text-destructive"
+                      userVote === "down" && "text-red-500 hover:text-red-500"
                     )}
                     onClick={() => handleVote("down")}
                   >
                     <IconThumbDown className="h-4 w-4" />
                   </Button>
-                </div>
-
-                {/* Comments Count */}
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <IconMessageCircle className="h-4 w-4" />
-                  <span className="text-sm">{post.stats.comments}</span>
                 </div>
               </div>
 
