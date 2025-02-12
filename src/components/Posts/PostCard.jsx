@@ -188,7 +188,9 @@ export default function PostCard({ post }) {
                         variant="ghost"
                         size="icon"
                         onClick={(e) => { e.stopPropagation(); handleVote("up"); }}
-                        className={cn(userVote === "up" && "text-primary")}
+                        className={cn(
+                          userVote === "up" && "text-green-500 hover:text-green-500"
+                        )}
                       >
                         <IconThumbUp className="w-4 h-4" />
                       </Button>
@@ -202,7 +204,7 @@ export default function PostCard({ post }) {
                         variant="ghost"
                         size="icon"
                         onClick={(e) => { e.stopPropagation(); handleVote("down"); }}
-                        className={cn(userVote === "down" && "text-destructive")}
+                        className={cn(userVote === "down" && "text-red-500 hover:text-red-500")}
                       >
                         <IconThumbDown className="w-4 h-4" />
                       </Button>
