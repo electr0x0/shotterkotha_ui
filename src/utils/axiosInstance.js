@@ -10,37 +10,54 @@ const axiosInstance = axios.create({
   },
 });
 
-// Add a response interceptor to handle token refresh
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // If the error status is 401 and there is no originalRequest._retry flag,
-    // it means the token has expired and we need to refresh it
-    if (error.response.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
+    // If error is not 401 or request has already been retried, reject
+    if (error.response?.status !== 401 || originalRequest._retry) {
+      return Promise.reject(error);
+    }
 
-      try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        const response = await axios.post(`${baseURL}token/refresh/`, {
-          refresh: refreshToken
-        });
+    originalRequest._retry = true;
 
-        const { access } = response.data;
-        localStorage.setItem('accessToken', access);
-        
-        // Update the original request with the new token
-        originalRequest.headers['Authorization'] = `Bearer ${access}`;
-        return axios(originalRequest);
-      } catch (error) {
-        // If refresh token fails, redirect to login
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) {
+        throw new Error('No refresh token available');
+      }
+
+      const response = await axios.post(`${baseURL}auth/token/refresh/`, {
+        refresh: refreshToken
+      });
+
+      const { access } = response.data;
+      localStorage.setItem('accessToken', access);
+      
+      originalRequest.headers.Authorization = `Bearer ${access}`;
+      return axios(originalRequest);
+    } catch (refreshError) {
+      // Only clear tokens and redirect on refresh token failure
+      if (refreshError.response?.status === 401) {
         localStorage.clear();
         window.location.href = '/login';
-        return Promise.reject(error);
       }
+      return Promise.reject(refreshError);
     }
-    return Promise.reject(error);
   }
 );
 

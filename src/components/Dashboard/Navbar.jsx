@@ -13,10 +13,19 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { useEffect, useState } from "react"
 
 export default function Navbar() {
   const router = useRouter()
   const { setTheme, theme } = useTheme()
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const accessToken = localStorage.getItem('accessToken')
+    const refreshToken = localStorage.getItem('refreshToken')
+    setIsAuthenticated(!!accessToken && !!refreshToken)
+  }, [])
 
   return (
     <div className="fixed top-0 left-0 right-0 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
@@ -122,8 +131,19 @@ export default function Navbar() {
 
           {/* Right Section: Notifications & Profile - Hidden on mobile */}
           <div className="hidden md:flex items-center gap-2">
-            <Notification />
-            <ProfileDropdown />
+            {isAuthenticated ? (
+              <>
+                <Notification />
+                <ProfileDropdown />
+              </>
+            ) : (
+              <Button 
+                onClick={() => router.push('/login')}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                Login
+              </Button>
+            )}
           </div>
         </div>
       </div>
