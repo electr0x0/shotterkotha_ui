@@ -46,6 +46,7 @@ function FeedPage() {
           ))}
         </div>
       </div>
+<AIChatMessage />
     </div>
   );
 }
