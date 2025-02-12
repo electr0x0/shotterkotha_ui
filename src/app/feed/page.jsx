@@ -3,6 +3,7 @@ import { useState } from "react";
 import HotPosts from "@/components/Dashboard/HotPosts";
 import PostCard from "@/components/Posts/PostCard";
 import PostFilters from "@/components/Dashboard/PostFilters";
+import AIChatMessage from "@/components/Dashboard/AIChatMessage";
 import { motion } from "framer-motion";
 import { IconAlertTriangle } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
@@ -46,7 +47,9 @@ function FeedPage() {
           ))}
         </div>
       </div>
-<AIChatMessage />
+
+      {/* AI Chat Message Component */}
+      <AIChatMessage />
     </div>
   );
 }

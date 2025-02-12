@@ -28,7 +28,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog"
 import CommentSection from "./CommentSection"
 import AIImageDescription from "./AIImageDescription"
 
@@ -72,44 +72,37 @@ export default function PostView({ post }) {
       <div className="mt-4">
         <Dialog open={isMediaOpen} onOpenChange={setIsMediaOpen}>
           <DialogTrigger asChild>
-            <Button
-              variant="outline"
-              className="gap-2 w-full justify-start"
-            >
+            <div className="cursor-pointer relative rounded-lg overflow-hidden">
               {post.media.type === 'photo' ? (
-                <>
-                  <IconPhoto className="h-4 w-4" />
-                  View Photo
-                </>
+                <img
+                  src={post.media.url}
+                  alt="Post media"
+                  className="w-full rounded-lg"
+                />
               ) : (
-                <>
-                  <IconVideo className="h-4 w-4" />
-                  View Video
-                </>
+                <video
+                  src={post.media.url}
+                  className="w-full rounded-lg"
+                  controls
+                />
               )}
-            </Button>
+            </div>
           </DialogTrigger>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="max-w-4xl">
+            <DialogTitle className="sr-only">
+              {post.media.type === 'photo' ? 'Post Image' : 'Post Video'}
+            </DialogTitle>
             {post.media.type === 'photo' ? (
-              <div className="relative">
-                <Lens
-                  zoomFactor={2}
-                  lensSize={200}
-                  hovering={isHovering}
-                  setHovering={setIsHovering}
-                >
-                  <img
-                    src={post.media.url}
-                    alt="Post media"
-                    className="w-full rounded-lg"
-                    onError={(e) => {
-                      e.currentTarget.src = null;
-                      console.error("Failed to load image");
-                    }}
-                  />
-                </Lens>
-              </div>
-            ) : post.media.type === 'video' && post.media.url ? (
+              <img
+                src={post.media.url}
+                alt="Post media"
+                className="w-full rounded-lg"
+                onError={(e) => {
+                  e.currentTarget.src = null;
+                  console.error("Failed to load image");
+                }}
+              />
+            ) : post.media.type === 'video' ? (
               <video
                 src={post.media.url}
                 controls
