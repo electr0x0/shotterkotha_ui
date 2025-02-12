@@ -25,12 +25,14 @@ import {
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import AIImageDescription from "./AIImageDescription";
+import axiosInstance from "@/utils/axiosInstance";
+import { toast } from "react-hot-toast";
 
-export default function PostCard({ post }) {
+export default function PostCard({ post, onVote }) {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
-  const [votes, setVotes] = useState(post.stats.upvotes - post.stats.downvotes);
-  const [userVote, setUserVote] = useState(null);
+  const [votes, setVotes] = useState(post.upvotes_count - post.downvotes_count);
+  const [userVote, setUserVote] = useState(post.has_user_voted);
   const [isSaved, setIsSaved] = useState(false);
 
   const handlePostClick = (e) => {
@@ -45,46 +47,42 @@ export default function PostCard({ post }) {
     router.push(`/post/${post.id}`);
   };
 
-  const handleVote = (type) => {
-    if (userVote === type) {
-      setUserVote(null);
-      setVotes(post.stats.upvotes - post.stats.downvotes);
-    } else {
-      setUserVote(type);
-      setVotes(
-        type === "up"
-          ? post.stats.upvotes - post.stats.downvotes + 1
-          : post.stats.upvotes - post.stats.downvotes - 1
-      );
+  const handleVote = async (type) => {
+    try {
+      const response = await axiosInstance.post(`/reports/posts/${post.id}/vote/`, {
+        vote_type: type
+      });
+
+      if (response.status === 200) {
+        if (userVote === type) {
+          setUserVote(null);
+          setVotes(votes => type === "up" ? votes - 1 : votes + 1);
+        } else {
+          // If changing vote from opposite type
+          if (userVote) {
+            setVotes(votes => type === "up" ? votes + 2 : votes - 2);
+          } else {
+            setVotes(votes => type === "up" ? votes + 1 : votes - 1);
+          }
+          setUserVote(type);
+        }
+      }
+    } catch (error) {
+      toast.error("Failed to register vote. Please try again.");
+      console.error("Vote error:", error);
     }
   };
 
   const renderUserAvatar = () => {
-    if (!post.user.image) {
-      return (
-        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-          <IconUser className="w-5 h-5" />
-        </div>
-      );
-    }
-
     return (
-      <motion.div 
-        whileHover={{ scale: 1.1 }}
-        className="relative w-10 h-10"
-      >
-        <Image
-          src={post.user.image}
-          alt={post.user.name}
-          fill
-          className="rounded-full object-cover border-2 border-primary"
-        />
-      </motion.div>
+      <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+        <IconUser className="w-5 h-5" />
+      </div>
     );
   };
 
   const renderMedia = () => {
-    if (!post.media?.url) return null;
+    if (!post.media?.[0]?.file) return null;
 
     return (
       <div
@@ -92,32 +90,39 @@ export default function PostCard({ post }) {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <Image
-          src={post.media.url}
-          alt={post.title}
-          fill
-          className="object-cover transition-transform duration-300 hover:scale-105"
-        />
-        {post.media.type === "video" && (
-          <AnimatePresence>
-            {isHovered && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/50 flex items-center justify-center"
-              >
+        {post.media[0].media_type === "image" ? (
+          <img
+            src={post.media[0].file}
+            alt={post.title}
+            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+          />
+        ) : post.media[0].media_type === "video" && (
+          <>
+            <video
+              src={post.media[0].file}
+              className="w-full h-full object-cover"
+              preload="metadata"
+            />
+            <AnimatePresence>
+              {isHovered && (
                 <motion.div
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0.8 }}
-                  className="rounded-full bg-white/20 p-4 backdrop-blur-sm"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-black/50 flex items-center justify-center"
                 >
-                  <IconPlayerPlay className="w-8 h-8 text-white" />
+                  <motion.div
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0.8 }}
+                    className="rounded-full bg-white/20 p-4 backdrop-blur-sm"
+                  >
+                    <IconPlayerPlay className="w-8 h-8 text-white" />
+                  </motion.div>
                 </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              )}
+            </AnimatePresence>
+          </>
         )}
       </div>
     );
@@ -136,41 +141,57 @@ export default function PostCard({ post }) {
       animate={{ opacity: 1, y: 0 }}
       className="w-full"
     >
-      <div 
-        onClick={handlePostClick}
-        className="relative flex flex-col gap-4 p-4 rounded-lg bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border hover:border-accent cursor-pointer"
-      >
-        <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden transition-all duration-200 hover:shadow-xl">
-          {/* Header */}
+      <div className="relative bg-background rounded-lg border shadow-sm overflow-hidden">
+        <div onClick={handlePostClick}>
+          {/* User Info Section */}
           <div className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                {renderUserAvatar()}
-                <div>
-                  <h3 className="font-semibold">{post.user.name}</h3>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <IconMapPin className="w-3 h-3" />
-                      <span>{post.location}</span>
+            <div className="flex items-center gap-3">
+              {renderUserAvatar()}
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">{post.user.first_name} {post.user.last_name}</span>
+                  {post.user.verified_status === "verified" && (
+                    <Badge variant="secondary" className="text-primary">✓ Verified</Badge>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <IconMapPin className="w-3 h-3" />
+                    <span className="line-clamp-1">{post.fullAddress}</span>
+                  </div>
+                  {(post.division || post.district) && (
+                    <div className="flex items-center gap-2 text-xs">
+                      {post.division && (
+                        <Badge variant="outline" size="sm">
+                          {post.division} Division
+                        </Badge>
+                      )}
+                      {post.district && (
+                        <Badge variant="outline" size="sm">
+                          {post.district} District
+                        </Badge>
+                      )}
                     </div>
+                  )}
+                  <div className="flex items-center gap-2">
                     <div className="flex items-center gap-1">
                       <IconClock className="w-3 h-3" />
-                      <span>{post.timeAgo}</span>
+                      <span>{post.time_ago}</span>
                     </div>
+                    <Badge className={severityColor[post.severity]}>
+                      {post.severity.charAt(0).toUpperCase() + post.severity.slice(1)} Severity
+                    </Badge>
+                    <Badge variant="secondary">
+                      {post.category.charAt(0).toUpperCase() + post.category.slice(1)}
+                    </Badge>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className={cn("font-medium", severityColor[post.severity])}>
-                  {post.severity.charAt(0).toUpperCase() + post.severity.slice(1)}
-                </Badge>
-                <Badge variant="secondary">{post.category}</Badge>
-              </div>
             </div>
             
-            <div className="mb-4">
+            <div className="mt-4">
               <h2 className="text-lg font-semibold mb-2">{post.title}</h2>
-              <p className="text-muted-foreground text-sm">{post.description}</p>
+              <p className="text-muted-foreground text-sm line-clamp-3">{post.description}</p>
             </div>
           </div>
 
@@ -188,9 +209,7 @@ export default function PostCard({ post }) {
                         variant="ghost"
                         size="icon"
                         onClick={(e) => { e.stopPropagation(); handleVote("up"); }}
-                        className={cn(
-                          userVote === "up" && "text-green-500 hover:text-green-500"
-                        )}
+                        className={cn(userVote === "up" && "text-primary")}
                       >
                         <IconThumbUp className="w-4 h-4" />
                       </Button>
@@ -204,7 +223,7 @@ export default function PostCard({ post }) {
                         variant="ghost"
                         size="icon"
                         onClick={(e) => { e.stopPropagation(); handleVote("down"); }}
-                        className={cn(userVote === "down" && "text-red-500 hover:text-red-500")}
+                        className={cn(userVote === "down" && "text-destructive")}
                       >
                         <IconThumbDown className="w-4 h-4" />
                       </Button>
@@ -212,21 +231,27 @@ export default function PostCard({ post }) {
                     <TooltipContent>Downvote</TooltipContent>
                   </Tooltip>
                 </div>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="flex items-center gap-2">
+                      <IconMessageCircle className="w-4 h-4" />
+                      <span className="text-sm">{post.comments_count}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Comments</TooltipContent>
+                </Tooltip>
               </TooltipProvider>
-              {/* Comments Count */}
-              <div className="flex items-center gap-1 p-2 rounded-md text-foreground hover:bg-gray-800/15">
-                    <IconMessageCircle className="h-4 w-4" />
-                    <span className="text-sm">{post.stats.comments}</span>
-                  </div>
-              </div>
+            </div>
 
             <div className="flex items-center gap-2">
-              {post.media?.type === 'photo' && post.media.aiDescription && (
-                <AIImageDescription 
-                  imageUrl={post.media.url} 
-                  description={post.media.aiDescription}
-                />
-              )}
+              {post.media?.[0]?.media_type === 'image' && 
+                post.media[0].ai_description && (
+                  <AIImageDescription 
+                    imageUrl={post.media[0].file}
+                    description={post.media[0].ai_description}
+                  />
+                )}
               <Button
                 variant="ghost"
                 size="icon"
