@@ -93,7 +93,8 @@ export default {
   },
   plugins: [
     require("tailwindcss-animate"),
-    addVariablesForColors
+    addVariablesForColors,
+    require('tailwind-scrollbar'),
   ],
 };
 
