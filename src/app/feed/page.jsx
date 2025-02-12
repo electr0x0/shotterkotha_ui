@@ -5,6 +5,7 @@ import PostCard from "@/components/Posts/PostCard";
 import PostFilters from "@/components/Dashboard/PostFilters";
 import { motion } from "framer-motion";
 import { IconAlertTriangle } from "@tabler/icons-react";
+import { Button } from "@/components/ui/button";
 
 // Sample data - replace with actual API calls
 const samplePosts = [
@@ -59,6 +60,7 @@ function FeedPage() {
     sortBy: "hot",
     category: "all"
   });
+  const [selectedPost, setSelectedPost] = useState(null);
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
@@ -98,13 +100,37 @@ function FeedPage() {
         <PostFilters onFilterChange={handleFilterChange} />
       </div>
       
-      {/* Posts Grid */}
+      {/* Posts Grid with Conditional Layout */}
       <div className="flex-1 p-6">
-        <div className="grid grid-cols-1 gap-6">
-          {sortedPosts.map((post) => (
-            <PostCard key={post.id} {...post} />
-          ))}
-        </div>
+        {selectedPost ? (
+          <div className="grid grid-cols-[1fr,400px] gap-6">
+            <div>
+              <Button 
+                variant="ghost" 
+                onClick={() => setSelectedPost(null)}
+                className="mb-4"
+              >
+                ← Back to Feed
+              </Button>
+              <PostCard {...selectedPost} />
+            </div>
+            <div className="border-l border-border pl-6">
+              <h3 className="font-semibold mb-4">Comments</h3>
+              <div className="space-y-4">
+                {/* Replace with actual comments component */}
+                <p className="text-muted-foreground text-sm">Comments section coming soon...</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {sortedPosts.map((post) => (
+              <div key={post.id} onClick={() => setSelectedPost(post)} className="cursor-pointer">
+                <PostCard {...post} />
+              </div>
+            ))}
+          </div>
+        )}
 
         {sortedPosts.length === 0 && (
           <motion.div 
