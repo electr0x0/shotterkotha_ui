@@ -6,6 +6,7 @@ import * as z from "zod";
 import { format } from "date-fns";
 import { Calendar as CalendarIcon, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import AIImageDescription from "@/components/Posts/AIImageDescription";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +37,8 @@ const formSchema = z.object({
   media: z.array(z.object({
     file: z.instanceof(File),
     type: z.enum(["image", "video"]),
-    preview: z.string()
+    preview: z.string(),
+    aiDescription: z.string().optional()
   })).min(1, "At least one photo or video is required"),
 });
 
@@ -59,11 +61,20 @@ export function ReportIncidentForm({ onClose }) {
     const newMediaFiles = files.map(file => ({
       file,
       type: file.type.startsWith('image/') ? 'image' : 'video',
-      preview: URL.createObjectURL(file)
+      preview: URL.createObjectURL(file),
+      aiDescription: null
     }));
     
     setMediaFiles([...mediaFiles, ...newMediaFiles]);
     form.setValue('media', [...mediaFiles, ...newMediaFiles]);
+  };
+
+  const updateMediaDescription = (index, description) => {
+    const updatedFiles = mediaFiles.map((media, i) => 
+      i === index ? { ...media, aiDescription: description } : media
+    );
+    setMediaFiles(updatedFiles);
+    form.setValue('media', updatedFiles);
   };
 
   const removeMedia = (index) => {
@@ -169,13 +180,21 @@ export function ReportIncidentForm({ onClose }) {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     {mediaFiles.map((media, index) => (
-                      <div key={index} className="relative group">
+                      <div key={index} className="relative group space-y-2">
                         {media.type === 'image' ? (
-                          <img
-                            src={media.preview}
-                            alt={`Upload ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg"
-                          />
+                          <>
+                            <img
+                              src={media.preview}
+                              alt={`Upload ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg"
+                            />
+                            <AIImageDescription 
+                              imageUrl={media.preview}
+                              description={media.aiDescription}
+                              isUpload={true}
+                              onDescriptionGenerated={(desc) => updateMediaDescription(index, desc)}
+                            />
+                          </>
                         ) : (
                           <video
                             src={media.preview}
@@ -217,7 +236,7 @@ export function ReportIncidentForm({ onClose }) {
                 </div>
               </FormControl>
               <FormDescription>
-                Upload photos or videos related to the incident
+                Upload photos or videos related to the incident. For images, you can generate AI descriptions to help improve accessibility.
               </FormDescription>
               <FormMessage />
             </FormItem>
