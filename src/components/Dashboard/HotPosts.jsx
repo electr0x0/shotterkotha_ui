@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { IconChevronLeft, IconChevronRight, IconAlertTriangle } from "@tabler/icons-react";
+import { IconChevronLeft, IconChevronRight, IconAlertTriangle, IconLoader2 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
@@ -13,7 +13,7 @@ function HotPosts() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const timeoutRef = useRef(null);
   const router = useRouter();
@@ -24,18 +24,25 @@ function HotPosts() {
 
   const fetchHotPosts = async () => {
     try {
-      setLoading(true);
-      const response = await axiosInstance.get('/reports/posts/');
-      // Get only posts with images and take the 3 most recent
+      setIsLoading(true);
+      setError(null);
+      
+      // Use the same endpoint as the feed
+      const queryParams = new URLSearchParams();
+      const url = `/reports/posts/${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await axiosInstance.get(url);
+      
+      // Filter and take only the first 3 posts with images
       const postsWithImages = response.data
-        .filter(post => post.media?.some(media => media.media_type === 'image'))
+        .filter(post => post.media?.length > 0 && post.media[0].media_type === 'image')
         .slice(0, 3);
+      
       setPosts(postsWithImages);
     } catch (err) {
       console.error('Error fetching hot posts:', err);
       setError('Failed to load recent posts');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
@@ -54,17 +61,28 @@ function HotPosts() {
     return () => clearTimeout(timeoutRef.current);
   }, [currentIndex, isHovered, posts.length]);
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="relative h-[400px] rounded-xl overflow-hidden bg-background/95 animate-pulse">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
+      <div className="relative h-[400px] rounded-xl overflow-hidden bg-background/95">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <IconLoader2 className="w-6 h-6 animate-spin" />
+          <span className="ml-2">Loading posts...</span>
+        </div>
       </div>
     );
   }
 
   if (error || posts.length === 0) {
-    return null; // Don't show anything if there's an error or no posts
+    return null;
   }
+
+  const severityColor = {
+    low: "bg-green-500/10 text-green-500",
+    medium: "bg-yellow-500/10 text-yellow-500",
+    high: "bg-red-500/10 text-red-500",
+  };
+
+  const currentPost = posts[currentIndex];
 
   return (
     <div className="relative overflow-hidden bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -95,7 +113,7 @@ function HotPosts() {
           className="relative h-[400px] rounded-xl overflow-hidden cursor-pointer"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
-          onClick={() => router.push(`/post/${posts[currentIndex].id}`)}
+          onClick={() => router.push(`/post/${currentPost.id}`)}
         >
           <AnimatePresence mode="wait">
             <motion.div
@@ -106,12 +124,13 @@ function HotPosts() {
               transition={{ duration: 0.5 }}
               className="relative h-full"
             >
-              <Image
-                src={posts[currentIndex].media.find(m => m.media_type === 'image').file_url}
-                alt={posts[currentIndex].title}
-                fill
-                className="object-cover"
-              />
+              {currentPost.media[0] && (
+                <img
+                  src={currentPost.media[0].file}
+                  alt={currentPost.title}
+                  className="w-full h-full object-cover"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
               
               <motion.div 
@@ -122,28 +141,29 @@ function HotPosts() {
               >
                 <div className="flex items-center gap-3 mb-4">
                   <Badge 
-                    variant="outline" 
                     className={cn(
                       "font-medium",
-                      posts[currentIndex].severity === 'high' && "bg-red-500/10 text-red-500",
-                      posts[currentIndex].severity === 'medium' && "bg-yellow-500/10 text-yellow-500",
-                      posts[currentIndex].severity === 'low' && "bg-green-500/10 text-green-500"
+                      severityColor[currentPost.severity]
                     )}
                   >
-                    {posts[currentIndex].severity.toUpperCase()}
+                    {currentPost.severity.charAt(0).toUpperCase() + 
+                     currentPost.severity.slice(1)} Severity
                   </Badge>
-                  <Badge variant="secondary">{posts[currentIndex].category}</Badge>
+                  <Badge variant="secondary">
+                    {currentPost.category.charAt(0).toUpperCase() + 
+                     currentPost.category.slice(1)}
+                  </Badge>
                   <Badge variant="outline" className="gap-1">
                     <IconAlertTriangle className="w-3 h-3" />
-                    {posts[currentIndex].comments_count} Reports
+                    {currentPost.comments_count} Reports
                   </Badge>
                 </div>
                 
                 <h3 className="text-2xl font-bold text-white mb-2">
-                  {posts[currentIndex].title}
+                  {currentPost.title}
                 </h3>
-                <p className="text-gray-200 max-w-2xl">
-                  {posts[currentIndex].description}
+                <p className="text-gray-200 max-w-2xl line-clamp-2">
+                  {currentPost.description}
                 </p>
               </motion.div>
             </motion.div>
