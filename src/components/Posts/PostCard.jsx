@@ -82,27 +82,24 @@ export default function PostCard({ post, onVote }) {
   };
 
   const renderMedia = () => {
-    if (!post.media?.length) return null;
+    if (!post.media?.[0]?.file) return null;
 
-    // Get the first media item
-    const firstMedia = post.media[0];
-    
     return (
       <div
         className="relative aspect-video w-full cursor-pointer overflow-hidden"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {firstMedia.media_type === "image" ? (
+        {post.media[0].media_type === "image" ? (
           <img
-            src={firstMedia.file_url}
+            src={post.media[0].file}
             alt={post.title}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
           />
-        ) : firstMedia.media_type === "video" && (
+        ) : post.media[0].media_type === "video" && (
           <>
             <video
-              src={firstMedia.file_url}
+              src={post.media[0].file}
               className="w-full h-full object-cover"
               preload="metadata"
             />
@@ -176,15 +173,23 @@ export default function PostCard({ post, onVote }) {
                       )}
                     </div>
                   )}
-                  <div className="flex items-center gap-1">
-                    <IconClock className="w-3 h-3" />
-                    <span>{post.time_ago}</span>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <IconClock className="w-3 h-3" />
+                      <span>{post.time_ago}</span>
+                    </div>
+                    <Badge className={severityColor[post.severity]}>
+                      {post.severity.charAt(0).toUpperCase() + post.severity.slice(1)} Severity
+                    </Badge>
+                    <Badge variant="secondary">
+                      {post.category.charAt(0).toUpperCase() + post.category.slice(1)}
+                    </Badge>
                   </div>
                 </div>
               </div>
             </div>
             
-            <div className="mb-4">
+            <div className="mt-4">
               <h2 className="text-lg font-semibold mb-2">{post.title}</h2>
               <p className="text-muted-foreground text-sm line-clamp-3">{post.description}</p>
             </div>
@@ -240,11 +245,10 @@ export default function PostCard({ post, onVote }) {
             </div>
 
             <div className="flex items-center gap-2">
-              {post.media?.length > 0 && 
-                post.media[0].media_type === 'image' && 
+              {post.media?.[0]?.media_type === 'image' && 
                 post.media[0].ai_description && (
                   <AIImageDescription 
-                    imageUrl={post.media[0].file_url} 
+                    imageUrl={post.media[0].file}
                     description={post.media[0].ai_description}
                   />
                 )}

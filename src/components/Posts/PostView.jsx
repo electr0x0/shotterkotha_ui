@@ -81,17 +81,17 @@ export default function PostView({ post }) {
       <div className="mt-4">
         <Dialog open={isMediaOpen} onOpenChange={setIsMediaOpen}>
           <DialogTrigger asChild>
-            <div className="cursor-pointer relative rounded-lg overflow-hidden">
+            <div className="relative aspect-video w-full cursor-pointer overflow-hidden rounded-lg">
               {post.media[0].media_type === 'image' ? (
                 <img
                   src={post.media[0].file}
                   alt={post.title}
-                  className="w-full rounded-lg"
+                  className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
                 />
               ) : (
                 <video
                   src={post.media[0].file}
-                  className="w-full rounded-lg"
+                  className="h-full w-full object-cover"
                   controls
                 />
               )}
@@ -125,140 +125,124 @@ export default function PostView({ post }) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      {/* Post Header */}
-      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container max-w-4xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
-                <IconArrowLeft className="h-4 w-4" />
-              </Button>
-              <h1 className="text-lg font-semibold">Post</h1>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <IconDots className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem className="text-destructive">
-                  <IconFlag className="h-4 w-4 mr-2" />
-                  Report
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </div>
-
-      {/* Post Content */}
+    <div className="flex flex-col h-full">
       <ScrollArea className="flex-1">
-        <div className="container max-w-4xl mx-auto px-4 py-6">
-          <div className="space-y-4">
-            {/* User Info */}
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
-                <IconUser className="h-5 w-5" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium">{post.user.first_name} {post.user.last_name}</span>
-                  {post.user.verified_status === "verified" && (
-                    <Badge variant="secondary" className="text-primary">✓ Verified</Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <IconMapPin className="w-3 h-3" />
-                    <span>{post.fullAddress}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <IconClock className="w-3 h-3" />
-                    <span>{post.time_ago}</span>
-                  </div>
-                </div>
-              </div>
+        <div className="p-6">
+          {/* User Info */}
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center">
+              <IconUser className="h-5 w-5" />
             </div>
-
-            {/* Post Details */}
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Badge variant="outline" className={cn("font-medium", severityColor[post.severity])}>
-                  {post.severity.charAt(0).toUpperCase() + post.severity.slice(1)}
-                </Badge>
-                <Badge variant="secondary">{post.category}</Badge>
-              </div>
-              <h1 className="text-2xl font-bold mb-4">{post.title}</h1>
-              <p className="text-foreground/90 whitespace-pre-wrap">{post.description}</p>
-            </div>
-
-            {/* Media */}
-            {renderMedia()}
-
-            {/* Actions */}
-            <div className="flex items-center justify-between pt-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn("h-9 w-9", userVote === "up" && "text-primary")}
-                    onClick={() => handleVote("up")}
-                  >
-                    <IconThumbUp className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm font-medium min-w-[20px] text-center">
-                    {votes}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={cn("h-9 w-9", userVote === "down" && "text-destructive")}
-                    onClick={() => handleVote("down")}
-                  >
-                    <IconThumbDown className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <IconMessageCircle className="h-4 w-4" />
-                  <span className="text-sm">{post.comments_count}</span>
-                </div>
-              </div>
-
+            <div className="flex-1">
               <div className="flex items-center gap-2">
-                {post.media?.[0]?.media_type === 'image' && post.media[0].ai_description && (
-                  <AIImageDescription 
-                    imageUrl={post.media[0].file}
-                    description={post.media[0].ai_description}
-                  />
+                <span className="font-medium">{post.user.first_name} {post.user.last_name}</span>
+                {post.user.verified_status === "verified" && (
+                  <Badge variant="secondary" className="text-primary">✓ Verified</Badge>
                 )}
+              </div>
+              <div className="flex flex-col gap-1.5 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <IconMapPin className="w-3 h-3" />
+                  <span>{post.fullAddress}</span>
+                </div>
+                {(post.division || post.district) && (
+                  <div className="flex items-center gap-2">
+                    {post.division && (
+                      <Badge variant="outline">
+                        {post.division} Division
+                      </Badge>
+                    )}
+                    {post.district && (
+                      <Badge variant="outline">
+                        {post.district} District
+                      </Badge>
+                    )}
+                  </div>
+                )}
+                <div className="flex items-center gap-1">
+                  <IconClock className="w-3 h-3" />
+                  <span>{post.time_ago}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Post Details */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="outline" className={cn("font-medium", severityColor[post.severity])}>
+                {post.severity.charAt(0).toUpperCase() + post.severity.slice(1)}
+              </Badge>
+              <Badge variant="secondary">{post.category}</Badge>
+            </div>
+            <h1 className="text-2xl font-bold mb-4">{post.title}</h1>
+            <p className="text-foreground/90 whitespace-pre-wrap">{post.description}</p>
+          </div>
+
+          {/* Media */}
+          {renderMedia()}
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={cn("h-9 w-9", isSaved && "text-primary")}
-                  onClick={() => setIsSaved(!isSaved)}
+                  className={cn("h-9 w-9", userVote === "up" && "text-primary")}
+                  onClick={() => handleVote("up")}
                 >
-                  <IconBookmark className="h-4 w-4" />
+                  <IconThumbUp className="h-4 w-4" />
                 </Button>
+                <span className="text-sm font-medium min-w-[20px] text-center">
+                  {votes}
+                </span>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-9 w-9"
-                  onClick={handleShare}
+                  className={cn("h-9 w-9", userVote === "down" && "text-destructive")}
+                  onClick={() => handleVote("down")}
                 >
-                  <IconShare3 className="h-4 w-4" />
+                  <IconThumbDown className="h-4 w-4" />
                 </Button>
+              </div>
+
+              <div className="flex items-center gap-1 text-muted-foreground">
+                <IconMessageCircle className="h-4 w-4" />
+                <span className="text-sm">{post.comments_count}</span>
               </div>
             </div>
 
-            <Separator className="my-6" />
-
-            {/* Comments Section */}
-            <CommentSection postId={post.id} comments={post.comments} />
+            <div className="flex items-center gap-2">
+              {post.media?.[0]?.media_type === 'image' && post.media[0].ai_description && (
+                <AIImageDescription 
+                  imageUrl={post.media[0].file}
+                  description={post.media[0].ai_description}
+                />
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-9 w-9", isSaved && "text-primary")}
+                onClick={() => setIsSaved(!isSaved)}
+              >
+                <IconBookmark className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={handleShare}
+              >
+                <IconShare3 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
+
+          <Separator className="my-6" />
+
+          {/* Comments Section */}
+          <CommentSection postId={post.id} comments={post.comments} />
         </div>
       </ScrollArea>
     </div>
