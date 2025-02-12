@@ -87,30 +87,24 @@ function FeedPage() {
   });
 
   return (
-    <div className="min-h-screen bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      {/* Hot Posts Carousel */}
-      <section className="mb-8">
+    <div className="flex flex-col min-h-screen">
+      {/* Hot Posts Section First */}
+      <div className="p-6 pb-0">
         <HotPosts />
-      </section>
-
-      {/* Main Feed */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="sticky top-[4.5rem] bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-30 py-4">
-          <PostFilters onFilterChange={handleFilterChange} />
-        </div>
-        
-        <motion.div 
-          className="space-y-6"
-          variants={container}
-          initial="hidden"
-          animate="show"
-        >
+      </div>
+      
+      {/* Filters - Below Hot Posts */}
+      <div className="px-6 mt-8">
+        <PostFilters onFilterChange={handleFilterChange} />
+      </div>
+      
+      {/* Posts Grid */}
+      <div className="flex-1 p-6">
+        <div className="grid grid-cols-1 gap-6">
           {sortedPosts.map((post) => (
-            <motion.div key={post.id} variants={item}>
-              <PostCard {...post} />
-            </motion.div>
+            <PostCard key={post.id} {...post} />
           ))}
-        </motion.div>
+        </div>
 
         {sortedPosts.length === 0 && (
           <motion.div 
@@ -127,7 +121,7 @@ function FeedPage() {
             </p>
           </motion.div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

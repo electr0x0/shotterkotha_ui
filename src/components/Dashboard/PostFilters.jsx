@@ -85,8 +85,8 @@ function PostFilters({ onFilterChange }) {
   };
 
   return (
-    <div className="flex flex-col space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="relative bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+      <div className="flex items-center gap-2 p-4">
         <div className="flex items-center gap-2">
           <IconFilter className="w-5 h-5 text-muted-foreground" />
           <h2 className="text-lg font-semibold">Filters</h2>
@@ -102,16 +102,14 @@ function PostFilters({ onFilterChange }) {
             Clear Filters
           </Button>
         )}
-      </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Division Filter */}
+        {/* Division Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="gap-2">
-              <IconMapPin className="w-4 h-4" />
+              <IconMapPin className="h-4 w-4" />
               {selectedDivision || "All Divisions"}
-              <IconChevronRight className="w-4 h-4" />
+              <IconChevronRight className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
@@ -141,7 +139,7 @@ function PostFilters({ onFilterChange }) {
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {/* District Filter */}
+        {/* District Dropdown */}
         {selectedDivision && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -179,13 +177,12 @@ function PostFilters({ onFilterChange }) {
           </DropdownMenu>
         )}
 
-        {/* Sort Options */}
+        {/* Sort Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2 ml-auto">
-              <IconArrowsSort className="w-4 h-4" />
-              {sortOptions.find(opt => opt.value === sortBy)?.label}
-              <IconChevronRight className="w-4 h-4" />
+            <Button variant="outline" className="gap-2">
+              <IconArrowsSort className="h-4 w-4" />
+              {sortOptions.find(opt => opt.value === sortBy)?.label || "Sort"}
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
@@ -216,42 +213,28 @@ function PostFilters({ onFilterChange }) {
         </DropdownMenu>
 
         {/* Active Filters */}
-        <AnimatePresence>
-          {(selectedDivision || selectedDistrict) && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex items-center gap-2"
-            >
-              <Separator orientation="vertical" className="h-6" />
-              <div className="flex items-center gap-2">
-                {selectedDivision && (
-                  <Badge variant="secondary" className="gap-1">
-                    {selectedDivision}
-                    <button 
-                      onClick={() => handleDivisionChange("")}
-                      className="ml-1 hover:text-destructive"
-                    >
-                      <IconX className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                )}
-                {selectedDistrict && (
-                  <Badge variant="secondary" className="gap-1">
-                    {selectedDistrict}
-                    <button 
-                      onClick={() => handleDistrictChange("")}
-                      className="ml-1 hover:text-destructive"
-                    >
-                      <IconX className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                )}
-              </div>
-            </motion.div>
+        <div className="flex-1 flex items-center gap-2">
+          {selectedDivision && (
+            <Badge variant="secondary" className="gap-1">
+              {selectedDivision}
+              <button
+                onClick={() => handleDivisionChange("")}
+                className="ml-1 hover:text-destructive">
+                <IconX className="h-3 w-3" />
+              </button>
+            </Badge>
           )}
-        </AnimatePresence>
+          {selectedDistrict && (
+            <Badge variant="secondary" className="gap-1">
+              {selectedDistrict}
+              <button
+                onClick={() => handleDistrictChange("")}
+                className="ml-1 hover:text-destructive">
+                <IconX className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -34,19 +34,27 @@ export function Modal({
 
 export const ModalTrigger = ({
   children,
-  className
+  className,
+  asChild = false
 }) => {
   const { setOpen } = useModal();
+  
+  if (asChild) {
+    return React.cloneElement(children, {
+      onClick: () => setOpen(true)
+    });
+  }
+
   return (
-    <button
+    <div
       className={cn(
-        "px-4 py-2 rounded-md text-black dark:text-white text-center relative overflow-hidden",
+        "px-4 py-2 rounded-md text-black dark:text-white text-center relative overflow-hidden cursor-pointer",
         className
       )}
       onClick={() => setOpen(true)}
     >
       {children}
-    </button>
+    </div>
   );
 };
 
