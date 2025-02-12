@@ -6,6 +6,7 @@ import Comment from "./Comment"
 import { Button } from "@/components/ui/button"
 import { IconMessageCircle } from "@tabler/icons-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import WriteComment from "./WriteComment"
 
 // Recursive component for nested comments
 const CommentThread = ({ comment, level = 0, maxLevel = 6 }) => {
@@ -119,13 +120,35 @@ export default function CommentSection({ postId }) {
     fetchComments()
   }
 
-  const handleAddComment = async (content) => {
+  const handleAddComment = async (commentData) => {
     try {
-      // TODO: Implement API call
-      const response = await axios.post(`/api/posts/${postId}/comments`, {
-        content
-      })
-      setComments([response.data, ...comments])
+      // TODO: Implement API call with media upload
+      const formData = new FormData()
+      formData.append('content', commentData.content)
+      formData.append('media', commentData.media.file)
+      
+      // Mock response for now
+      const newComment = {
+        id: Date.now().toString(),
+        user: {
+          name: "You",
+          image: null,
+        },
+        content: commentData.content,
+        media: {
+          type: commentData.media.type,
+          url: commentData.media.url,
+        },
+        timeAgo: "Just now",
+        stats: {
+          upvotes: 0,
+          downvotes: 0,
+          comments: 0,
+        },
+        isEditable: true,
+      }
+
+      setComments([newComment, ...comments])
       setTotalComments(totalComments + 1)
       setIsWriting(false)
     } catch (error) {
@@ -149,7 +172,7 @@ export default function CommentSection({ postId }) {
         </Button>
       </div>
 
-      {/* New Comment Input */}
+      {/* Write Comment Section */}
       <AnimatePresence>
         {isWriting && (
           <motion.div
@@ -158,16 +181,9 @@ export default function CommentSection({ postId }) {
             exit={{ opacity: 0, height: 0 }}
             className="mb-6"
           >
-            <Comment
-              comment={{
-                user: {
-                  name: "You",
-                  image: null,
-                },
-                content: "",
-                isEditable: true,
-                stats: { upvotes: 0, downvotes: 0 },
-              }}
+            <WriteComment
+              onSubmit={handleAddComment}
+              onCancel={() => setIsWriting(false)}
             />
           </motion.div>
         )}

@@ -8,6 +8,8 @@ import {
   IconDots,
   IconMessageCircle,
   IconUser,
+  IconPhoto,
+  IconVideo,
 } from "@tabler/icons-react"
 import {
   DropdownMenu,
@@ -16,28 +18,17 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
-export default function Comment({ 
-  comment = {
-    id: "1",
-    user: {
-      name: "John Doe",
-      image: null,
-    },
-    content: "This is a comment",
-    timeAgo: "2 hours ago",
-    stats: {
-      upvotes: 5,
-      downvotes: 1,
-    },
-    isEditable: true,
-    isDeleted: false,
-    isEdited: false,
-  }
-}) {
+export default function Comment({ comment }) {
   const [votes, setVotes] = useState(comment.stats.upvotes - comment.stats.downvotes)
   const [userVote, setUserVote] = useState(null)
   const [isReplying, setIsReplying] = useState(false)
+  const [isMediaOpen, setIsMediaOpen] = useState(false)
 
   const handleVote = (type) => {
     if (userVote === type) {
@@ -53,23 +44,81 @@ export default function Comment({
     }
   }
 
+  const renderUserAvatar = () => {
+    if (comment.isDeleted) return null;
+    
+    if (comment.user.image) {
+      return (
+        <img
+          src={comment.user.image}
+          alt={comment.user.name}
+          className="w-8 h-8 rounded-full"
+          onError={(e) => {
+            e.currentTarget.src = null;
+            e.currentTarget.alt = "";
+          }}
+        />
+      );
+    }
+
+    return (
+      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+        <IconUser className="w-4 h-4" />
+      </div>
+    );
+  };
+
+  const renderMedia = () => {
+    if (!comment.media?.url) return null;
+
+    return (
+      <Dialog open={isMediaOpen} onOpenChange={setIsMediaOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-2">
+            {comment.media.type === 'photo' ? (
+              <>
+                <IconPhoto className="w-4 h-4" />
+                View Photo
+              </>
+            ) : (
+              <>
+                <IconVideo className="w-4 h-4" />
+                View Video
+              </>
+            )}
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="max-w-3xl">
+          {comment.media.type === 'photo' ? (
+            <img
+              src={comment.media.url || null}
+              alt="Comment photo"
+              className="w-full rounded-lg"
+              onError={(e) => {
+                e.currentTarget.src = null;
+                e.currentTarget.alt = "";
+              }}
+            />
+          ) : (
+            <video
+              src={comment.media.url || null}
+              controls
+              className="w-full rounded-lg"
+              onError={(e) => {
+                e.currentTarget.src = null;
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   return (
     <div className="group relative flex gap-4 p-4 rounded-lg bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border">
       {/* User Avatar */}
       <div className="flex-shrink-0">
-        {!comment.isDeleted && (
-          comment.user.image ? (
-            <img
-              src={comment.user.image}
-              alt={comment.user.name}
-              className="w-8 h-8 rounded-full"
-            />
-          ) : (
-            <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-              <IconUser className="w-4 h-4" />
-            </div>
-          )
-        )}
+        {renderUserAvatar()}
       </div>
 
       {/* Comment Content */}
@@ -98,7 +147,10 @@ export default function Comment({
           {comment.isDeleted ? "[deleted]" : comment.content}
         </p>
 
-        {/* Comment Actions - Only show if not deleted */}
+        {/* Comment Media */}
+        {!comment.isDeleted && renderMedia()}
+
+        {/* Comment Actions */}
         {!comment.isDeleted && (
           <div className="flex items-center gap-4">
             {/* Vote Buttons */}
@@ -164,7 +216,7 @@ export default function Comment({
           </div>
         )}
 
-        {/* Reply Input (Conditionally Rendered) */}
+        {/* Reply Input */}
         {isReplying && !comment.isDeleted && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
